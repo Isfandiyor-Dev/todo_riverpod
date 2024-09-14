@@ -18,19 +18,15 @@ class TodoRepository {
         final data = await _localDatabase.getTodos();
         return data;
       } else {
+        await syncLocalToFirebase();
         // Internet mavjud, Firebase'dan olish
         final data = await _firebaseService.getTodos();
         final todos = data?.entries.map((e) {
           final todo = e.value as Map<String, dynamic>;
           todo["id"] = e.key;
+
           return Todo.fromMap(todo);
         }).toList();
-
-        if (todos != null) {
-          for (final todo in todos) {
-            await _localDatabase.insertTodo(todo);
-          }
-        }
 
         return todos;
       }
@@ -65,8 +61,8 @@ class TodoRepository {
         await _localDatabase.updateTodo(todo);
       } else {
         // Internet mavjud, Firebase'da yangilash
+        await _localDatabase.updateTodo(todo);
         await _firebaseService.editTodo(todo);
-        await _localDatabase.updateTodo(todo); // Mahalliy yangilash
       }
     } catch (e) {
       print("Edit Todo Error: $e");
@@ -87,6 +83,21 @@ class TodoRepository {
       }
     } catch (e) {
       print("Delete Todo Error: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> syncLocalToFirebase() async {
+    try {
+      final localTodos = await _localDatabase.getTodos();
+      if (localTodos != null) {
+        await _firebaseService.syncTodos(localTodos);
+      }
+      localTodos!.forEach(
+        (element) => print("Bu Element: ${element.toMapLocalDb()}"),
+      );
+    } catch (e) {
+      print("Sync Local to Firebase Error: $e");
       rethrow;
     }
   }

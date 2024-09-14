@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:todo_riverpod/models/todo.dart';
 import 'package:todo_riverpod/provider/todo_provider.dart';
+import 'package:uuid/uuid.dart';
 
 class TodoHomePage extends ConsumerStatefulWidget {
   const TodoHomePage({super.key});
@@ -21,16 +22,12 @@ class _TodoHomePageState extends ConsumerState<TodoHomePage> {
   final TextEditingController _controller = TextEditingController();
 
   void _addTodoItem(WidgetRef ref, String task) async {
-    // final newTodo = {
-    //   "task": task,
-    //   "date": DateTime.now().toString(),
-    //   "isDone": false,
-    // };
     final newTodo = Todo(
-        id: UniqueKey().toString(),
-        task: task,
-        date: DateTime.now(),
-        isDone: false);
+      id: const Uuid().v1(),
+      task: task,
+      date: DateTime.now(),
+      isDone: false,
+    );
     await ref.read(todoNotifierProvider.notifier).addTodo(newTodo);
     _controller.clear();
   }
@@ -44,8 +41,19 @@ class _TodoHomePageState extends ConsumerState<TodoHomePage> {
   }
 
   void _toggleCompletion(WidgetRef ref, Todo todo) async {
-    todo.isDone = todo.isDone ? true : false;
-    await ref.read(todoNotifierProvider.notifier).editTodo(todo);
+    setState(() {
+      todo.isDone = !todo.isDone; // checkboxni tezda yangilaymiz
+    });
+
+    try {
+      await ref.read(todoNotifierProvider.notifier).editTodo(todo);
+      // async operatsiya muvaffaqiyatli bo'lganda holatni qayta yuklash
+    } catch (e) {
+      setState(() {
+        todo.isDone = !todo.isDone; // xato bo'lsa qaytarish
+      });
+      print("Error: $e");
+    }
   }
 
   void _showEditDialog(WidgetRef ref, BuildContext context, Todo todo) {
@@ -101,9 +109,11 @@ class _TodoHomePageState extends ConsumerState<TodoHomePage> {
         .onConnectivityChanged
         .listen((List<ConnectivityResult> result) {
       if (result.contains(ConnectivityResult.none)) {
+        ref.refresh(todoNotifierProvider);
         showMessenger(context, "Internet mavjud emas!", Colors.redAccent);
         showMessenger(context, "Offline rejimga o'tildi!", Colors.orange);
       } else {
+        ref.refresh(todoNotifierProvider);
         showMessenger(
             context, "Internetga muvaffaqiyatli ulandi!", Colors.green);
       }
@@ -112,7 +122,7 @@ class _TodoHomePageState extends ConsumerState<TodoHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    print("build");
+    // print("build");
     final todoState = ref.watch(todoNotifierProvider);
     return Scaffold(
       appBar: AppBar(
@@ -124,8 +134,8 @@ class _TodoHomePageState extends ConsumerState<TodoHomePage> {
             return const Center(child: Text('No todos yet.'));
           }
           for (var element in todos) {
-              print(element.toMap());
-            }
+            print("Bu build ichidagi: ${element.toMapFirebase()}");
+          }
           return ListView.builder(
             itemCount: todos.length,
             itemBuilder: (context, index) {
@@ -134,7 +144,6 @@ class _TodoHomePageState extends ConsumerState<TodoHomePage> {
                 leading: Checkbox(
                   value: todo.isDone,
                   onChanged: (value) {
-                    todo.isDone = !todo.isDone;
                     _toggleCompletion(ref, todo);
                   },
                 ),

@@ -16,7 +16,7 @@ class FirebaseService {
     const String query = "todos.json";
     try {
       final response = await _dio.get(query);
-      print(response);
+      // print(response);
       return response.data as Map<String, dynamic>?;
     } on DioException catch (e) {
       print("Get Todos Dio Exception: ${e.response?.data}");
@@ -28,10 +28,10 @@ class FirebaseService {
   }
 
   Future<void> addTodo(Todo todo) async {
-    const String query = "todos.json";
+    String query = "todos/${todo.id}.json"; // .json kengaytmasi qo'shildi
     try {
-      final response = await _dio.post(query, data: todo.toMapFirebase());
-      print(response);
+      final response = await _dio.put(query, data: todo.toMapFirebase());
+      // print(response);
     } on DioException catch (e) {
       print("Add Todo Dio Exception: ${e.response?.data}");
       throw e.response?.data ?? 'An unexpected error occurred';
@@ -45,7 +45,7 @@ class FirebaseService {
     final String query = "todos/${todo.id}.json";
     try {
       final response = await _dio.patch(query, data: todo.toMapFirebase());
-      print(response.data);
+      // print(response.data);
     } on DioException catch (e) {
       print("Edit Todo Dio Exception: ${e.response?.data}");
       throw e.response?.data ?? 'An unexpected error occurred';
@@ -65,6 +65,20 @@ class FirebaseService {
       throw e.response?.data ?? 'An unexpected error occurred';
     } catch (e) {
       print("Delete Todo Error: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> syncTodos(List<Todo> todos) async {
+    try {
+      for (final todo in todos) {
+        await addTodo(todo); // Har bir todo ni Firebase'ga qo'shish
+      }
+    } on DioException catch (e) {
+      print("Sync Todos Dio Exception: ${e.response?.data}");
+      throw e.response?.data ?? 'An unexpected error occurred';
+    } catch (e) {
+      print("Sync Todos Error: $e");
       rethrow;
     }
   }

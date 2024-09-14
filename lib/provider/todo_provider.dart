@@ -20,7 +20,6 @@ class TodoNotifier extends _$TodoNotifier {
   Future<void> editTodo(Todo todo) async {
     await _todoRepository.editTodo(todo);
     ref.invalidateSelf();
-    await future;
   }
 
   Future<void> deleteTodo(String id) async {

@@ -30,11 +30,11 @@ class LocalDatabase {
 
   Future<void> insertTodo(Todo todo) async {
     final db = await database;
-    await db.insert('todos', todo.toMap(),
+    await db.insert('todos', todo.toMapLocalDb(),
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<List<Todo>> getTodos() async {
+  Future<List<Todo>?> getTodos() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('todos');
     return List.generate(maps.length, (i) {
@@ -46,7 +46,7 @@ class LocalDatabase {
     final db = await database;
     return await db.update(
       'todos',
-      todo.toMap(),
+      todo.toMapLocalDb(),
       where: 'id = ?',
       whereArgs: [todo.id],
     );
